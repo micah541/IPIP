@@ -1,43 +1,40 @@
 import pandas as pd 
 import numpy as np
-from sklearn.metrics.pairwise import euclidean_distances
-import matplotlib.pyplot as plt
 import time
+from sklearn.metrics.pairwise import euclidean_distances 
 
 
-df = pd.read_table("IPIP120.dat")  #did not work for me 
+#reading the 120 set
 
-#I had trouble reading this, so instead 
 f = open("IPIP120.dat", "r")
 p = f.read()
 p = p.split('\r\n')
-sex = [i[5] for i in p[:-1]]
+sex = [i[6] for i in p[:-1]]
 datastrings = [i[-120:] for i in p[:-1]]
 datastringsplit = [list(d) for d in datastrings]
+datastringsplit = [[int(a) for a in b] for b in datastringsplit]
 df = pd.DataFrame(datastringsplit, columns = ['I'+str(n+1) for n in range(120)])
 df['sex'] = sex
 
-## to get into pandas format
-import pyreadstat
+#men = df[df['sex']=='1']
 
+
+#reading the 300 set
 df, meta = pyreadstat.read_por("IPIP300.por")
-
-
-df.to_csv("300.csv")
-
-
-
-
-df = pd.read_csv("300.csv")
-#men = df[df['sex']==1]
-#sample_men = men.sample(n=50000)
 
 for i in range(11):
     df.drop(df.columns[0], axis = 1, inplace=True)
 
-X = df.as_matrix()
 
-batch = 619
+df = df.sample(n=60000)  #taking a sample
+
+
+X = df.as_matrix() 
+#experimenting with noise
+#noise = np.random.randn(X.shape[0], X.shape[1])/100
+#X = X+noise
+
+batch = 60
 
 
 def getmu(v):
@@ -53,25 +50,27 @@ for i in range(len(X)/batch):
     print i
     print time.time()-tt
 
-##  implement the algorith following equation (7) at https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5610237/
+
+np.savetxt("sample_mus", mus)  
+
+
+##  implement the algorithm of Elena Facco, Maria d’Errico, Alex Rodriguez, and Alessandro Laio, following equation (7) at https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5610237/
 
 N = len(mus)
 mui = [np.log(mm) for mm in mus]
 mux = [-np.log(1-float(i)/N) for i in range(N)]
 mui = sorted(mui)
 
-## fit with 85%
+#linear regression
+
 np.polyfit(mui[0:85*N/100],mux[0:85*N/100],1)
-## fit with 90%
-
 np.polyfit(mui[0:90*N/100],mux[0:90*N/100],1)
-#save for later 
-np.savetxt("all_mus", mus)
+np.polyfit(mui[0:95*N/100],mux[0:95*N/100],1)
+np.polyfit(mui[0:80*N/100],mux[0:80*N/100],1)
 
-#look at pictures
+#looking at the picture of graph
 
-
+#plt.scatter(mui[0:90*N/100],mux[0:90*N/100])
 plt.scatter(mui,mux)
 plt.show()
-
 
